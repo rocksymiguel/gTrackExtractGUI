@@ -10,7 +10,11 @@
   2. when extracting, remuxes **only the selected tracks** (no re-encoding) to a temporary MKV in the output directory, extracts them with `mkvextract`, and deletes the temporary file.
 - **Subtitle timing is preserved:** audio tracks are remuxed separately from video/subtitles, so audio encoder delay (e.g. AAC priming) doesn't shift the extracted subtitles. Audio delays are still reported in the output filename (`DELAY xxms`), as usual.
 - Duration isn't shown for non-Matroska files (mkvmerge doesn't report it for them).
-- Targets **.NET Framework 4.8.1** (builds with current Visual Studio / Build Tools).
+- Targets **.NET Framework 4.8**, included in Windows 10 (1903 or newer) and Windows 11. The reference assemblies come from NuGet, so it builds with current Visual Studio / Build Tools.
+
+### Download
+
+Get the latest `gTrackExtractGUI-vX.Y.Z.zip` from [Releases](https://github.com/rocksymiguel/gTrackExtractGUI/releases), unzip it anywhere and run `gTrackExtractGUI.exe`. [MKVToolNix](https://mkvtoolnix.download/) must be installed.
 
 ### Building
 
