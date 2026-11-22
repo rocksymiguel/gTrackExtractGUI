@@ -56,7 +56,7 @@ namespace gMKVToolNix
                 Icon = Icon.ExtractAssociatedIcon(this.GetExecutingAssemblyLocation());
                 
                 // Set form title 
-                Text = String.Format("gMKVExtractGUI v{0} -- By Gpower2", Assembly.GetExecutingAssembly().GetName().Version);
+                Text = String.Format("gTrackExtractGUI v{0} -- based on gMKVExtractGUI by Gpower2", Assembly.GetExecutingAssembly().GetName().Version);
                 
                 // Set tooltips
                 SetTooltips();
@@ -451,12 +451,7 @@ namespace gMKVToolNix
                         throw CreateLocalizedException("UI.MainForm2.Errors.FileDoesNotExist", txtInputFile.Text.Trim());
                     }
                     // check if file is an mkv file
-                    String inputExtension = Path.GetExtension(txtInputFile.Text.Trim()).ToLower();
-                    if (inputExtension != ".mkv"
-                        && inputExtension != ".mka"
-                        && inputExtension != ".mks"
-                        && inputExtension != ".mk3d"
-                        && inputExtension != ".webm")
+                    if (!gContainerSupport.IsSupportedInputFile(txtInputFile.Text.Trim()))
                     {
                         throw CreateLocalizedException("UI.MainForm2.Errors.InvalidMatroskaInputFile", txtInputFile.Text.Trim(), Environment.NewLine);
                     }
@@ -519,7 +514,7 @@ namespace gMKVToolNix
                     }
                 }
                 ofd.Title = LocalizationManager.GetString("UI.MainForm2.Dialogs.SelectInputMatroskaFileTitle");
-                ofd.Filter = LocalizationManager.GetString("UI.MainForm2.Dialogs.SelectInputMatroskaFileFilter");
+                ofd.Filter = gContainerSupport.GetDialogFilter(LocalizationManager.GetString("UI.MainForm2.Dialogs.AllSupportedFilesLabel"), LocalizationManager.GetString("UI.MainForm2.Dialogs.SelectInputMatroskaFileFilter"));
                 ofd.Multiselect = false;
                 ofd.AutoUpgradeEnabled = true;
                 if (ofd.ShowDialog() == System.Windows.Forms.DialogResult.OK)

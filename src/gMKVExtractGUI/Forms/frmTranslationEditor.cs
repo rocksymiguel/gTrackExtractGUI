@@ -770,7 +770,7 @@ namespace gMKVToolNix.Forms
         {
             string title = LocalizationManager.GetString("UI.TranslationEditor.Title");
             Text = string.Format(
-                "gMKVExtractGUI v{0} -- {1}{2}",
+                "gTrackExtractGUI v{0} -- {1}{2}",
                 GetCurrentVersion(),
                 title,
                 _hasPendingChanges ? " *" : string.Empty);

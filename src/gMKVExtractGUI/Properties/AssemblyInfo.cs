@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("gMKVExtractGUI")]
-[assembly: AssemblyDescription("A GUI for mkvextract utility (part of MKVToolNix)")]
+[assembly: AssemblyTitle("gTrackExtractGUI")]
+[assembly: AssemblyDescription("A GUI for extracting tracks from Matroska, MP4 and other containers with MKVToolNix (fork of gMKVExtractGUI)")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Gpower2")]
-[assembly: AssemblyProduct("gMKVExtractGUI")]
+[assembly: AssemblyProduct("gTrackExtractGUI")]
 [assembly: AssemblyCopyright("Copyright © 2014-2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

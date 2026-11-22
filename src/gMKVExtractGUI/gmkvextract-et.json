@@ -7,8 +7,8 @@
   },
   "Entries": {
     "UI.MainForm.Title": {
-      "Source": "gMKVExtractGUI",
-      "Translation": "gMKVExtractGUI",
+      "Source": "gTrackExtractGUI",
+      "Translation": "gTrackExtractGUI",
       "IsTranslated": true,
       "Notes": ""
     },
@@ -367,8 +367,8 @@
       "Notes": ""
     },
     "UI.MainForm2.Title": {
-      "Source": "gMKVExtractGUI",
-      "Translation": "gMKVExtractGUI",
+      "Source": "gTrackExtractGUI",
+      "Translation": "gTrackExtractGUI",
       "IsTranslated": true,
       "Notes": ""
     },

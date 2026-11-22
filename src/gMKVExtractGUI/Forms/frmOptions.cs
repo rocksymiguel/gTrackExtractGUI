@@ -41,7 +41,7 @@ namespace gMKVToolNix.Forms
                 CaptureResponsiveLayoutBaselines();
 
                 Icon = Icon.ExtractAssociatedIcon(GetExecutingAssemblyLocation());
-                Text = string.Format("gMKVExtractGUI v{0} -- Options", GetCurrentVersion());
+                Text = string.Format("gTrackExtractGUI v{0} -- Options", GetCurrentVersion());
 
                 ApplyInfoTextFont();
                 SetInfoText(LocalizationManager.GetString("UI.OptionsForm.Info.Text"));
@@ -684,7 +684,7 @@ namespace gMKVToolNix.Forms
 
         public void ApplyLocalization()
         {
-            Text = string.Format("gMKVExtractGUI v{0} -- {1}", GetCurrentVersion(), LocalizationManager.GetString("UI.OptionsForm.Title"));
+            Text = string.Format("gTrackExtractGUI v{0} -- {1}", GetCurrentVersion(), LocalizationManager.GetString("UI.OptionsForm.Title"));
             grpInfo.Text = LocalizationManager.GetString("UI.OptionsForm.Info.Group");
             ApplyInfoTextFont();
             SetInfoText(LocalizationManager.GetString("UI.OptionsForm.Info.Text"));

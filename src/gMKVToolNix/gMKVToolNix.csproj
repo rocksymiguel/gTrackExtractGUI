@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>gMKVToolNix</RootNamespace>
     <AssemblyName>gMKVToolNix</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -100,6 +100,7 @@
     <Compile Include="Segments\gMKVSegment.cs" />
     <Compile Include="Segments\gMKVSegmentInfo.cs" />
     <Compile Include="Segments\gMKVTrack.cs" />
+    <Compile Include="gContainerSupport.cs" />
     <Compile Include="gMKVHelper.cs" />
     <Compile Include="gMKVVersion.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

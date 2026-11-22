@@ -7,8 +7,8 @@
   },
   "Entries": {
     "UI.MainForm.Title": {
-      "Source": "gMKVExtractGUI",
-      "Translation": "gMKVExtractGUI",
+      "Source": "gTrackExtractGUI",
+      "Translation": "gTrackExtractGUI",
       "IsTranslated": true,
       "Notes": "Titre de la fenêtre de l'application"
     },
@@ -367,8 +367,8 @@
       "Notes": "Bouton pour fermer la fenêtre du journal"
     },
     "UI.MainForm2.Title": {
-      "Source": "gMKVExtractGUI",
-      "Translation": "gMKVExtractGUI",
+      "Source": "gTrackExtractGUI",
+      "Translation": "gTrackExtractGUI",
       "IsTranslated": true,
       "Notes": "Titre de la fenêtre du formulaire principal 2"
     },
