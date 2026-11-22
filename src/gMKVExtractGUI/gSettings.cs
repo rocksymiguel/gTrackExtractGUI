@@ -221,7 +221,7 @@ namespace gMKVToolNix
             return (T)v;
         }
 
-        private static readonly string _SETTINGS_FILE = "gMKVExtractGUI.ini";
+        private static readonly string _SETTINGS_FILE = "gTrackExtractGUI.ini";
         private readonly string _SettingsPath = "";
 
         public gSettings(string appPath)

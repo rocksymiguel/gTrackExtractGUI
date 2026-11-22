@@ -57,7 +57,7 @@ namespace gMKVToolNix
         private void InitForm()
         {
             Icon = Icon.ExtractAssociatedIcon(GetExecutingAssemblyLocation());
-            Text = string.Format("gMKVExtractGUI v{0} -- Log", GetCurrentVersion());
+            Text = string.Format("gTrackExtractGUI v{0} -- Log", GetCurrentVersion());
         }
 
         private void frmLog_Activated(object sender, EventArgs e)
@@ -150,7 +150,7 @@ namespace gMKVToolNix
                 sfd.CheckFileExists = false; // Changed to false to allow creating new files
                 sfd.DefaultExt = "txt";
                 sfd.Filter = "*.txt|*.txt";
-                sfd.FileName = string.Format("[{0}][{1}][gMKVExtractGUI_v{2}].txt",
+                sfd.FileName = string.Format("[{0}][{1}][gTrackExtractGUI_v{2}].txt",
                     DateTime.Now.ToString("yyyy-MM-dd"),
                     DateTime.Now.ToString("HH-mm-ss"),
                     Assembly.GetExecutingAssembly().GetName().Version);
@@ -173,7 +173,7 @@ namespace gMKVToolNix
 
         public void ApplyLocalization()
         {
-            this.Text = string.Format("gMKVExtractGUI v{0} -- {1}", GetCurrentVersion(), LocalizationManager.GetString("UI.LogForm.Title"));
+            this.Text = string.Format("gTrackExtractGUI v{0} -- {1}", GetCurrentVersion(), LocalizationManager.GetString("UI.LogForm.Title"));
             grpActions.Text = LocalizationManager.GetString("UI.LogForm.Actions.Group");
             btnSave.Text = LocalizationManager.GetString("UI.LogForm.Actions.Save");
             btnClear.Text = LocalizationManager.GetString("UI.LogForm.Actions.ClearLog");

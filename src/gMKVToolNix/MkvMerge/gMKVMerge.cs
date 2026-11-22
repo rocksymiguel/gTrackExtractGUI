@@ -124,6 +124,109 @@ namespace gMKVToolNix.MkvMerge
             return segmentList;
         }
 
+        /// <summary>
+        /// Remuxes (copies without re-encoding) the input file to a Matroska output file.
+        /// Used to make non-Matroska inputs (MP4, AVI, TS, ...) readable by mkvextract.
+        /// </summary>
+        /// <param name="argInputFile">The input file</param>
+        /// <param name="argOutputFile">The Matroska output file</param>
+        /// <param name="argExtraArguments">Extra mkvmerge arguments placed before the input file (e.g. track selection)</param>
+        /// <param name="argProgressHandler">Optional progress handler (0-100)</param>
+        /// <param name="argShouldAbort">Optional callback; when it returns true, the mkvmerge process is killed</param>
+        public void Remux(
+            string argInputFile,
+            string argOutputFile,
+            IEnumerable<string> argExtraArguments,
+            Action<int> argProgressHandler = null,
+            Func<bool> argShouldAbort = null)
+        {
+            List<string> errors = new List<string>();
+            bool aborted = false;
+
+            StringBuilder arguments = new StringBuilder();
+            arguments.AppendFormat("--ui-language {0} ", PlatformExtensions.IsOnLinux ? "en_US" : "en");
+            arguments.AppendFormat("-o \"{0}\" ", argOutputFile);
+            if (argExtraArguments != null)
+            {
+                foreach (string arg in argExtraArguments)
+                {
+                    arguments.AppendFormat("{0} ", arg);
+                }
+            }
+            arguments.AppendFormat("\"{0}\"", argInputFile);
+
+            using (Process myProcess = new Process())
+            {
+                myProcess.StartInfo = new ProcessStartInfo
+                {
+                    FileName = _MKVMergeFilename,
+                    Arguments = arguments.ToString(),
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    RedirectStandardError = true,
+                    StandardErrorEncoding = Encoding.UTF8,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                Debug.WriteLine(myProcess.StartInfo.Arguments);
+                gMKVLogger.Log($"\"{_MKVMergeFilename}\" {myProcess.StartInfo.Arguments}");
+
+                myProcess.Start();
+
+                myProcess.ReadStreamPerCharacter((Process proc, string line) =>
+                {
+                    if (argShouldAbort != null && argShouldAbort())
+                    {
+                        aborted = true;
+                        try { proc.Kill(); } catch { }
+                        return;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        return;
+                    }
+
+                    gMKVLogger.Log(line);
+
+                    if (line.Contains("Progress:") && line.Contains("%"))
+                    {
+                        int start = line.IndexOf(":") + 1;
+                        int progress;
+                        if (int.TryParse(line.Substring(start, line.IndexOf("%") - start).Trim(), out progress))
+                        {
+                            argProgressHandler?.Invoke(progress);
+                        }
+                    }
+                    else if (line.Contains("Error:"))
+                    {
+                        errors.Add(line.Substring(line.IndexOf(":") + 1).Trim());
+                    }
+                });
+
+                myProcess.WaitForExit();
+
+                string exitString = $"Exit code: {myProcess.ExitCode}";
+                Debug.WriteLine(exitString);
+                gMKVLogger.Log(exitString);
+
+                if (aborted || myProcess.ExitCode < 0)
+                {
+                    throw new Exception("User aborted the current process!");
+                }
+
+                // ExitCode 1 is for warnings only, so ignore it
+                if (myProcess.ExitCode > 1)
+                {
+                    throw new Exception(string.Format("Mkvmerge exited with error code {0} while remuxing {1}!" +
+                        Environment.NewLine + Environment.NewLine + "Errors reported:" + Environment.NewLine + "{2}",
+                        myProcess.ExitCode, argInputFile, string.Join(Environment.NewLine, errors)));
+                }
+            }
+        }
+
         public bool FindAndSetDelays(List<gMKVSegment> argSegmentList)
         {
             // Check to see if the list contains segments

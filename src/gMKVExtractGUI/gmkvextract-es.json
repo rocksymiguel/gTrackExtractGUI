@@ -7,8 +7,8 @@
   },
   "Entries": {
     "UI.MainForm.Title": {
-      "Source": "gMKVExtractGUI",
-      "Translation": "gMKVExtractGUI",
+      "Source": "gTrackExtractGUI",
+      "Translation": "gTrackExtractGUI",
       "IsTranslated": true,
       "Notes": "Application window title"
     },
@@ -368,8 +368,8 @@
       "Notes": "Button to close log window"
     },
     "UI.MainForm2.Title": {
-      "Source": "gMKVExtractGUI",
-      "Translation": "gMKVExtractGUI",
+      "Source": "gTrackExtractGUI",
+      "Translation": "gTrackExtractGUI",
       "IsTranslated": true,
       "Notes": "Main form 2 window title"
     },
@@ -1241,8 +1241,8 @@
       "Notes": "Error shown when mkvmerge cannot be found in a Linux path"
     },
     "UI.MainForm2.Errors.NoValidMatroskaFiles": {
-      "Source": "No valid Matroska files were provided!",
-      "Translation": "¡No se proporcionaron archivos Matroska válidos!",
+      "Source": "No supported video files were provided!",
+      "Translation": "¡No se proporcionaron archivos de video compatibles!",
       "IsTranslated": true,
       "Notes": "Error shown when no valid input files are available"
     },
@@ -1271,8 +1271,8 @@
       "Notes": "Error shown when a selected input file is missing"
     },
     "UI.MainForm2.Errors.InvalidMatroskaInputFile": {
-      "Source": "The input file {0}{1}{1}is not a valid Matroska file!",
-      "Translation": "El archivo de entrada {0}{1}{1}no es un archivo Matroska válido!",
+      "Source": "The input file {0}{1}{1}is not a supported video file!",
+      "Translation": "¡El archivo de entrada {0}{1}{1}no es un archivo de video compatible!",
       "IsTranslated": true,
       "Notes": "Error shown when a selected input file is not a Matroska file"
     },
@@ -1403,10 +1403,16 @@
       "Notes": "File dialog title used when browsing for the MKVToolNix directory"
     },
     "UI.MainForm2.Dialogs.SelectInputMatroskaFileTitle": {
-      "Source": "Select an input Matroska file...",
-      "Translation": "Seleccionar un archivo Matroska de entrada...",
+      "Source": "Select an input video file...",
+      "Translation": "Seleccionar un archivo de video de entrada...",
       "IsTranslated": true,
       "Notes": "File dialog title used when adding Matroska input files"
+    },
+    "UI.MainForm2.Dialogs.AllSupportedFilesLabel": {
+      "Source": "All supported files",
+      "Translation": "Todos los archivos compatibles",
+      "IsTranslated": true,
+      "Notes": "File dialog filter label for all the supported input files"
     },
     "UI.MainForm2.Dialogs.SelectInputMatroskaFileFilter": {
       "Source": "Matroska files (*.mkv;*.mka;*.mks;*.mk3d;*.webm)|*.mkv;*.mka;*.mks;*.mk3d;*.webm|Matroska video files (*.mkv)|*.mkv|Matroska audio files (*.mka)|*.mka|Matroska subtitle files (*.mks)|*.mks|Matroska 3D files (*.mk3d)|*.mk3d|WebM files (*.webm)|*.webm",
@@ -1493,8 +1499,8 @@
       "Notes": "Status text shown while extraction is running"
     },
     "UI.MainForm.Errors.ValidMatroskaFileRequired": {
-      "Source": "You must provide a valid Matroska file!",
-      "Translation": "¡Debe proporcionar un archivo Matroska válido!",
+      "Source": "You must provide a supported video file!",
+      "Translation": "¡Debe proporcionar un archivo de video compatible!",
       "IsTranslated": true,
       "Notes": "Error shown in the legacy main form when no valid Matroska file is selected"
     },

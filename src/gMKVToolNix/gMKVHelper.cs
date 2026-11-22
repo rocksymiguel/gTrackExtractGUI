@@ -263,6 +263,112 @@ namespace gMKVToolNix
         /// <returns>A complete list of gMKVSegment objects with merged information from both tools</returns>
         public static List<gMKVSegment> GetMergedMkvSegmentList(gMKVMerge gMerge, gMKVInfo gInfo, string argInputFile)
         {
+            if (gContainerSupport.IsMatroskaFile(argInputFile))
+            {
+                return GetMergedMkvSegmentListCore(gMerge, gInfo, argInputFile);
+            }
+
+            return GetNonMatroskaSegmentList(gMerge, gInfo, argInputFile);
+        }
+
+        /// <summary>
+        /// Gets the segment list of a non-Matroska file (MP4, AVI, TS, ...).
+        /// mkvmerge can identify these files, but it doesn't report Matroska codec IDs, codec private data
+        /// or delays for them, which the rest of the application relies on. So we remux a small part
+        /// (a "probe") of the file to a temporary Matroska file, analyze that, and map its tracks back
+        /// to the original file's track IDs.
+        /// </summary>
+        private static List<gMKVSegment> GetNonMatroskaSegmentList(gMKVMerge gMerge, gMKVInfo gInfo, string argInputFile)
+        {
+            // Identify the original file (track IDs, chapters, attachments)
+            List<gMKVSegment> originalSegments = gMerge.GetMKVSegments(argInputFile);
+            List<gMKVTrack> originalTracks = originalSegments.OfType<gMKVTrack>().OrderBy(t => t.TrackID).ToList();
+
+            if (originalTracks.Count == 0)
+            {
+                throw new Exception(string.Format("No tracks were found in the file {0}!", argInputFile));
+            }
+
+            string probeFile = gContainerSupport.GetTemporaryMatroskaFilename(null);
+            try
+            {
+                // Remux only the first seconds of the file, which is enough to get all the track information
+                // (mkvmerge stops reading the input after the last split part)
+                gMerge.Remux(argInputFile, probeFile, new[] { "--split", "parts:00:00:00-00:00:10" });
+
+                List<gMKVSegment> probeSegments = GetMergedMkvSegmentListCore(gMerge, gInfo, probeFile);
+                List<gMKVTrack> probeTracks = probeSegments.OfType<gMKVTrack>().OrderBy(t => t.TrackID).ToList();
+
+                // mkvmerge keeps the order of the tracks, so map the probe's tracks to the original track IDs by position.
+                // Verify that assumption, so that we never show (and extract) the wrong track.
+                if (!TrackTypesMatch(probeTracks, originalTracks))
+                {
+                    throw new Exception(string.Format(
+                        "Could not analyze the file {0}!{1}The tracks reported by mkvmerge ({2}) don't match the remuxed tracks ({3}).",
+                        argInputFile, Environment.NewLine,
+                        string.Join(", ", originalTracks.Select(t => t.TrackType.ToString())),
+                        string.Join(", ", probeTracks.Select(t => t.TrackType.ToString()))));
+                }
+
+                for (int i = 0; i < probeTracks.Count; i++)
+                {
+                    probeTracks[i].TrackID = originalTracks[i].TrackID;
+                    if (string.IsNullOrWhiteSpace(probeTracks[i].TrackName))
+                    {
+                        probeTracks[i].TrackName = originalTracks[i].TrackName;
+                    }
+                }
+
+                List<gMKVSegment> finalList = new List<gMKVSegment>();
+
+                // Segment info: use the original file's info (the probe's duration isn't the real one)
+                gMKVSegmentInfo probeInfo = probeSegments.OfType<gMKVSegmentInfo>().FirstOrDefault();
+                gMKVSegmentInfo segInfo = originalSegments.OfType<gMKVSegmentInfo>().FirstOrDefault() ?? new gMKVSegmentInfo();
+                if (probeInfo != null && string.IsNullOrWhiteSpace(segInfo.TimecodeScale))
+                {
+                    segInfo.TimecodeScale = probeInfo.TimecodeScale;
+                }
+                segInfo.Directory = Path.GetDirectoryName(argInputFile);
+                segInfo.Filename = Path.GetFileName(argInputFile);
+                finalList.Add(segInfo);
+
+                // Tracks from the probe (full information)
+                finalList.AddRange(probeTracks);
+
+                // Chapters and attachments from the original (the probe only has part of the file)
+                finalList.AddRange(originalSegments.Where(s => !(s is gMKVTrack) && !(s is gMKVSegmentInfo)));
+
+                return finalList;
+            }
+            finally
+            {
+                gContainerSupport.TryDeleteFile(probeFile);
+            }
+        }
+
+        /// <summary>
+        /// Returns true if both track lists have the same number of tracks, with the same types in the same order.
+        /// </summary>
+        public static bool TrackTypesMatch(IList<gMKVTrack> argTracks, IList<gMKVTrack> argOtherTracks)
+        {
+            if (argTracks.Count != argOtherTracks.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < argTracks.Count; i++)
+            {
+                if (argTracks[i].TrackType != argOtherTracks[i].TrackType)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static List<gMKVSegment> GetMergedMkvSegmentListCore(gMKVMerge gMerge, gMKVInfo gInfo, string argInputFile)
+        {
             List<gMKVSegment> segmentListFromMkvMerge = gMerge.GetMKVSegments(argInputFile);
 
             // Check if information was found in mkvmerge output

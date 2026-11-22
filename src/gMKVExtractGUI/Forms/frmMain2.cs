@@ -87,7 +87,7 @@ namespace gMKVToolNix.Forms
                 Icon = Icon.ExtractAssociatedIcon(this.GetExecutingAssemblyLocation());
 
                 // Set form title
-                Text = string.Format("gMKVExtractGUI v{0} -- By Gpower2", this.GetCurrentVersion());
+                Text = string.Format("gTrackExtractGUI v{0} -- based on gMKVExtractGUI by Gpower2", this.GetCurrentVersion());
 
                 btnAbort.Enabled = false;
                 btnAbortAll.Enabled = false;
@@ -760,17 +760,8 @@ namespace gMKVToolNix.Forms
 
             fileList.AddRange(argFileDrop.Where(f => File.Exists(f)));
 
-            // Remove all non valid matroska files
-            fileList.RemoveAll(f =>
-            {
-                string extension = Path.GetExtension(f).ToLower();
-                return
-                    extension != ".mkv"
-                    && extension != ".mka"
-                    && extension != ".mks"
-                    && extension != ".mk3d"
-                    && extension != ".webm";
-            });
+            // Remove all non supported files
+            fileList.RemoveAll(f => !gContainerSupport.IsSupportedInputFile(f));
 
             return fileList;
         }
@@ -1024,13 +1015,8 @@ namespace gMKVToolNix.Forms
                 throw CreateLocalizedException("UI.MainForm2.Errors.FileDoesNotExist", argFilename);
             }
 
-            // Check if the extension is a valid matroska file
-            string inputExtension = Path.GetExtension(argFilename).ToLowerInvariant();
-            if (inputExtension != ".mkv"
-                && inputExtension != ".mka"
-                && inputExtension != ".mks"
-                && inputExtension != ".mk3d"
-                && inputExtension != ".webm")
+            // Check if the extension is a supported container (Matroska, MP4, AVI, TS, ...)
+            if (!gContainerSupport.IsSupportedInputFile(argFilename))
             {
                 throw CreateLocalizedException("UI.MainForm2.Errors.InvalidMatroskaInputFile", argFilename, Environment.NewLine);
             }
@@ -3012,7 +2998,7 @@ namespace gMKVToolNix.Forms
                 OpenFileDialog ofd = new OpenFileDialog
                 {
                     Title = LocalizationManager.GetString("UI.MainForm2.Dialogs.SelectInputMatroskaFileTitle"),
-                    Filter = LocalizationManager.GetString("UI.MainForm2.Dialogs.SelectInputMatroskaFileFilter"),
+                    Filter = gContainerSupport.GetDialogFilter(LocalizationManager.GetString("UI.MainForm2.Dialogs.AllSupportedFilesLabel"), LocalizationManager.GetString("UI.MainForm2.Dialogs.SelectInputMatroskaFileFilter")),
                     Multiselect = true,
                     AutoUpgradeEnabled = true
                 };
@@ -3213,7 +3199,7 @@ namespace gMKVToolNix.Forms
 
         public void ApplyLocalization()
         {
-            Text = string.Format("{0} v{1} -- By Gpower2", LocalizationManager.GetString("UI.MainForm2.Title"), GetCurrentVersion());
+            Text = string.Format("{0} v{1} -- based on gMKVExtractGUI by Gpower2", LocalizationManager.GetString("UI.MainForm2.Title"), GetCurrentVersion());
             UpdateInputFilesGroupTitle();
             UpdateSelectedFileInfoTitle();
             grpOutputDirectory.Text = LocalizationManager.GetString("UI.MainForm2.OutputDirectory.Group");

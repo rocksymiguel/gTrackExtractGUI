@@ -1,3 +1,34 @@
+# gTrackExtractGUI
+
+**A fork of [gMKVExtractGUI](https://github.com/Gpower2/gMKVExtractGUI) by Gpower2 that extracts tracks from MP4, MOV, AVI, TS and other containers, not only Matroska.**
+
+## What's different in this fork
+
+- **Any container that MKVToolNix can read:** `.mp4`, `.m4v`, `.m4a`, `.mov`, `.3gp`, `.avi`, `.ts`, `.m2ts`, `.mts`, `.mpg`, `.vob`, `.ogg`, `.ogm`, `.flv`, `.rm`/`.rmvb`, `.ivf`, plus the usual `.mkv`, `.mka`, `.mks`, `.mk3d`, `.webm`. You add them exactly like an MKV, and the app works the same way.
+- **How it works:** `mkvextract` can only read Matroska. For any other container, the app:
+  1. analyzes a small part of the file (the first 10 seconds, remuxed to a temporary MKV) to get the codecs and delays;
+  2. when extracting, remuxes **only the selected tracks** (no re-encoding) to a temporary MKV in the output directory, extracts them with `mkvextract`, and deletes the temporary file.
+- **Subtitle timing is preserved:** audio tracks are remuxed separately from video/subtitles, so audio encoder delay (e.g. AAC priming) doesn't shift the extracted subtitles. Audio delays are still reported in the output filename (`DELAY xxms`), as usual.
+- Duration isn't shown for non-Matroska files (mkvmerge doesn't report it for them).
+- Targets **.NET Framework 4.8**, included in Windows 10 (1903 or newer) and Windows 11. The reference assemblies come from NuGet, so it builds with current Visual Studio / Build Tools.
+
+### Download
+
+Get the latest `gTrackExtractGUI-vX.Y.Z.zip` from [Releases](https://github.com/rocksymiguel/gTrackExtractGUI/releases), unzip it anywhere and run `gTrackExtractGUI.exe`. [MKVToolNix](https://mkvtoolnix.download/) must be installed.
+
+### Building
+
+```
+msbuild gMKVExtractGUI.sln -t:restore -p:RestorePackagesConfig=true
+msbuild src\gMKVExtractGUI\gMKVExtractGUI.csproj -p:Configuration=Release
+```
+
+The output is `src\gMKVExtractGUI\bin\Release\gTrackExtractGUI.exe`. MKVToolNix must be installed.
+
+All credit for the original application goes to Gpower2. The original README follows.
+
+---
+
 # gMKVExtractGUI
 
 **A comprehensive C# .NET GUI for `mkvextract` and `mkvinfo` utilities.**

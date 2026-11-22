@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using gMKVToolNix.Log;
+using gMKVToolNix.MkvMerge;
 using gMKVToolNix.Segments;
 
 namespace gMKVToolNix.MkvExtract
@@ -102,6 +104,214 @@ namespace gMKVToolNix.MkvExtract
         {
             Abort = false;
             AbortAll = false;
+
+            if (gContainerSupport.IsMatroskaFile(argMKVFile))
+            {
+                ExtractMKVSegmentsFromSource(
+                    argMKVFile
+                    , argMKVFile
+                    , null
+                    , argMKVSegmentsToExtract
+                    , argOutputDirectory
+                    , argChapterType
+                    , argTimecodesExtractionMode
+                    , argCueExtractionMode
+                    , argFilenamePatterns
+                    , argDisableBomForTextFiles
+                    , argOverwriteExistingFile
+                    , argUseRawExtractionMode
+                    , argUseFullRawExtractionMode);
+                return;
+            }
+
+            // mkvextract can only read Matroska files; for other containers (MP4, AVI, TS, ...)
+            // remux the selected tracks to a temporary Matroska file first.
+            // Audio tracks are remuxed separately: audio with encoder delay (e.g. AAC priming) starts
+            // before zero, and mkvmerge would then shift ALL the tracks of the output, changing the
+            // timestamps of the extracted subtitles. The audio delays are still reported from the
+            // analysis of the whole file (EffectiveDelay), as usual.
+            List<gMKVSegment> nonAudioGroup = argMKVSegmentsToExtract
+                .Where(s => !(s is gMKVTrack t && t.TrackType == MkvTrackType.audio))
+                .ToList();
+            List<gMKVSegment> audioGroup = argMKVSegmentsToExtract
+                .Where(s => s is gMKVTrack t && t.TrackType == MkvTrackType.audio)
+                .ToList();
+
+            List<string> errors = new List<string>();
+            foreach (List<gMKVSegment> group in new[] { nonAudioGroup, audioGroup })
+            {
+                if (group.Count == 0)
+                {
+                    continue;
+                }
+
+                if (AbortAll)
+                {
+                    errors.Add("User aborted all the processes!");
+                    break;
+                }
+
+                string temporaryFile = null;
+                try
+                {
+                    temporaryFile = CreateTemporaryMatroskaSource(
+                        argMKVFile,
+                        group.OfType<gMKVTrack>(),
+                        group.OfType<gMKVChapter>().Any(),
+                        false,
+                        argOutputDirectory,
+                        out Dictionary<int, int> trackIdMap);
+
+                    ExtractMKVSegmentsFromSource(
+                        argMKVFile
+                        , temporaryFile
+                        , trackIdMap
+                        , group
+                        , argOutputDirectory
+                        , argChapterType
+                        , argTimecodesExtractionMode
+                        , argCueExtractionMode
+                        , argFilenamePatterns
+                        , argDisableBomForTextFiles
+                        , argOverwriteExistingFile
+                        , argUseRawExtractionMode
+                        , argUseFullRawExtractionMode);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                    errors.Add(ex.Message);
+                }
+                finally
+                {
+                    gContainerSupport.TryDeleteFile(temporaryFile);
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                throw new Exception(string.Join(Environment.NewLine, errors));
+            }
+        }
+
+        /// <summary>
+        /// Remuxes the selected tracks (and optionally chapters/tags) of a non-Matroska file
+        /// to a temporary Matroska file, so that mkvextract can read it.
+        /// </summary>
+        /// <param name="argTrackIdMap">Maps the original track IDs to the track IDs in the temporary file</param>
+        /// <returns>The temporary Matroska filename</returns>
+        private string CreateTemporaryMatroskaSource(
+            string argInputFile,
+            IEnumerable<gMKVTrack> argTracks,
+            bool argKeepChapters,
+            bool argKeepTags,
+            string argOutputDirectory,
+            out Dictionary<int, int> argTrackIdMap)
+        {
+            List<gMKVTrack> tracks = argTracks
+                .GroupBy(t => t.TrackID)
+                .Select(g => g.First())
+                .OrderBy(t => t.TrackID)
+                .ToList();
+
+            List<string> arguments = new List<string>();
+            AddTrackSelectionArgument(arguments, tracks, MkvTrackType.video, "-d", "-D");
+            AddTrackSelectionArgument(arguments, tracks, MkvTrackType.audio, "-a", "-A");
+            AddTrackSelectionArgument(arguments, tracks, MkvTrackType.subtitles, "-s", "-S");
+            arguments.Add("-B");
+            arguments.Add("--no-attachments");
+            if (!argKeepChapters)
+            {
+                arguments.Add("--no-chapters");
+            }
+            if (!argKeepTags)
+            {
+                arguments.Add("--no-global-tags");
+            }
+
+            // mkvmerge numbers the kept tracks sequentially, in the order of the original track IDs
+            argTrackIdMap = new Dictionary<int, int>();
+            for (int i = 0; i < tracks.Count; i++)
+            {
+                argTrackIdMap[tracks[i].TrackID] = i;
+            }
+
+            // Put the temporary file in the output directory, since it needs about as much space as the extracted tracks
+            string temporaryFile = gContainerSupport.GetTemporaryMatroskaFilename(argOutputDirectory);
+
+            OnMkvExtractTrackUpdated(argInputFile, "Remux to Matroska");
+            OnMkvExtractProgressUpdated(0);
+
+            try
+            {
+                gMKVMerge merge = new gMKVMerge(_MKVToolnixPath);
+                merge.Remux(
+                    argInputFile,
+                    temporaryFile,
+                    arguments,
+                    (int progress) => OnMkvExtractProgressUpdated(progress),
+                    () => Abort || AbortAll);
+
+                // Verify that the temporary file contains exactly the selected tracks, in the same order,
+                // so that we never extract the wrong track
+                List<gMKVTrack> remuxedTracks = merge.GetMKVSegments(temporaryFile)
+                    .OfType<gMKVTrack>()
+                    .OrderBy(t => t.TrackID)
+                    .ToList();
+                if (!gMKVHelper.TrackTypesMatch(remuxedTracks, tracks))
+                {
+                    throw new Exception(string.Format(
+                        "The remuxed tracks ({0}) don't match the selected tracks ({1}) of the file {2}!",
+                        string.Join(", ", remuxedTracks.Select(t => t.TrackType.ToString())),
+                        string.Join(", ", tracks.Select(t => t.TrackType.ToString())),
+                        argInputFile));
+                }
+            }
+            catch
+            {
+                Abort = false;
+                gContainerSupport.TryDeleteFile(temporaryFile);
+                throw;
+            }
+
+            return temporaryFile;
+        }
+
+        private static void AddTrackSelectionArgument(
+            List<string> argArguments,
+            List<gMKVTrack> argTracks,
+            MkvTrackType argTrackType,
+            string argSelectOption,
+            string argNoneOption)
+        {
+            List<int> ids = argTracks.Where(t => t.TrackType == argTrackType).Select(t => t.TrackID).ToList();
+            if (ids.Count == 0)
+            {
+                argArguments.Add(argNoneOption);
+            }
+            else
+            {
+                argArguments.Add(argSelectOption);
+                argArguments.Add(string.Join(",", ids));
+            }
+        }
+
+        private void ExtractMKVSegmentsFromSource(
+            string argMKVFile
+            , string argSourceFile
+            , Dictionary<int, int> argTrackIdMap
+            , List<gMKVSegment> argMKVSegmentsToExtract
+            , string argOutputDirectory
+            , MkvChapterTypes argChapterType
+            , TimecodesExtractionMode argTimecodesExtractionMode
+            , CuesExtractionMode argCueExtractionMode
+            , gMKVExtractFilenamePatterns argFilenamePatterns
+            , bool argDisableBomForTextFiles
+            , bool argOverwriteExistingFile
+            , bool argUseRawExtractionMode
+            , bool argUseFullRawExtractionMode
+        )
+        {
             List<string> errors = new List<string>();
 
             // Analyze the MKV segments and get the initial parameters
@@ -129,7 +339,8 @@ namespace gMKVToolNix.MkvExtract
                             argOverwriteExistingFile,
                             argUseRawExtractionMode,
                             argUseFullRawExtractionMode,
-                            _Version));
+                            _Version,
+                            argTrackIdMap));
                 }
                 catch (Exception ex)
                 {
@@ -180,7 +391,7 @@ namespace gMKVToolNix.MkvExtract
                     }
 
                     OnMkvExtractTrackUpdated(argMKVFile, finalPar.ExtractMode.ToString());
-                    ExtractMkvSegment(argMKVFile, finalPar, errors, outputFileWriter);
+                    ExtractMkvSegment(argSourceFile, finalPar, errors, outputFileWriter);
                 }
                 catch (Exception ex)
                 {
@@ -344,6 +555,15 @@ namespace gMKVToolNix.MkvExtract
                 argOverwriteExistingFile,
                 MkvExtractModes.cuesheet);
 
+            // mkvextract can only read Matroska files; remux the chapters and tags of other containers first
+            string sourceFile = argMKVFile;
+            string temporaryFile = null;
+            if (!gContainerSupport.IsMatroskaFile(argMKVFile))
+            {
+                temporaryFile = CreateTemporaryMatroskaSource(argMKVFile, new List<gMKVTrack>(), true, true, argOutputDirectory, out _);
+                sourceFile = temporaryFile;
+            }
+
             List<string> errors = new List<string>();
             StreamWriter outputFileWriter = null;
             try
@@ -357,7 +577,7 @@ namespace gMKVToolNix.MkvExtract
                 }
 
                 ExtractMkvSegment(
-                    argMKVFile
+                    sourceFile
                     , new TrackParameter(
                         MkvExtractModes.cuesheet
                         , ""
@@ -383,12 +603,52 @@ namespace gMKVToolNix.MkvExtract
                     outputFileWriter.Close();
                     outputFileWriter = null;
                 }
+
+                if (temporaryFile != null)
+                {
+                    // The cue sheet references the file it was extracted from; point it to the original file
+                    ReplaceTemporaryFileReference(cueFile, temporaryFile, argMKVFile);
+                }
+
+                gContainerSupport.TryDeleteFile(temporaryFile);
             }
 
             // check for errors
             if (errors.Count > 0)
             {
                 throw new Exception(string.Join(Environment.NewLine, errors));
+            }
+        }
+
+        private static void ReplaceTemporaryFileReference(string argTextFile, string argTemporaryFile, string argOriginalFile)
+        {
+            try
+            {
+                if (!File.Exists(argTextFile))
+                {
+                    return;
+                }
+
+                string temporaryName = Path.GetFileName(argTemporaryFile);
+                bool hasBom = File.ReadAllBytes(argTextFile).Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF });
+                string content = File.ReadAllText(argTextFile);
+                if (!content.Contains(temporaryName))
+                {
+                    return;
+                }
+
+                // Replace the whole quoted path that contains the temporary filename
+                string replaced = System.Text.RegularExpressions.Regex.Replace(
+                    content,
+                    "\"[^\"]*" + System.Text.RegularExpressions.Regex.Escape(temporaryName) + "\"",
+                    "\"" + argOriginalFile.Replace("$", "$$") + "\"");
+
+                File.WriteAllText(argTextFile, replaced, new UTF8Encoding(hasBom));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                gMKVLogger.Log("Could not update the cue sheet file reference: " + ex.Message);
             }
         }
 
@@ -433,6 +693,15 @@ namespace gMKVToolNix.MkvExtract
                 argOverwriteExistingFile,
                 MkvExtractModes.tags);
 
+            // mkvextract can only read Matroska files; remux the chapters and tags of other containers first
+            string sourceFile = argMKVFile;
+            string temporaryFile = null;
+            if (!gContainerSupport.IsMatroskaFile(argMKVFile))
+            {
+                temporaryFile = CreateTemporaryMatroskaSource(argMKVFile, new List<gMKVTrack>(), true, true, argOutputDirectory, out _);
+                sourceFile = temporaryFile;
+            }
+
             List<string> errors = new List<string>();
             StreamWriter outputFileWriter = null;
             try
@@ -446,7 +715,7 @@ namespace gMKVToolNix.MkvExtract
                 }
 
                 ExtractMkvSegment(
-                    argMKVFile
+                    sourceFile
                     , new TrackParameter(
                         MkvExtractModes.tags
                         , ""
@@ -472,6 +741,8 @@ namespace gMKVToolNix.MkvExtract
                     outputFileWriter.Close();
                     outputFileWriter = null;
                 }
+
+                gContainerSupport.TryDeleteFile(temporaryFile);
             }
 
             // check for errors
@@ -503,14 +774,23 @@ namespace gMKVToolNix.MkvExtract
             , bool argOverwriteExistingFile
             , bool argUseRawExtractionMode
             , bool argUseFullRawExtractionMode
-            , gMKVVersion version)
+            , gMKVVersion version
+            , Dictionary<int, int> argTrackIdMap = null)
         {
             // create the new parameter list type
             List<TrackParameter> trackParameterList = new List<TrackParameter>();
 
             // check the selected segment's type
-            if (argSeg is gMKVTrack track)
+            if (argSeg is gMKVTrack originalTrack)
             {
+                // When extracting from a temporary remuxed file, the track IDs are different.
+                // The output filenames are still based on the original track (and file).
+                gMKVTrack track = originalTrack;
+                if (argTrackIdMap != null && argTrackIdMap.TryGetValue(originalTrack.TrackID, out int mappedTrackId))
+                {
+                    track = new gMKVTrack { TrackID = mappedTrackId };
+                }
+
                 // if we are in a mode that requires timecodes extraction, add the parameter for the track
                 if (argTimecodesExtractionMode != TimecodesExtractionMode.NoTimecodes)
                 {

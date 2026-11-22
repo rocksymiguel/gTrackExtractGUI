@@ -61,7 +61,7 @@ namespace gMKVToolNix
                 _MainForm = argMainForm;
 
                 Icon = Icon.ExtractAssociatedIcon(GetExecutingAssemblyLocation());
-                Text = string.Format("gMKVExtractGUI v{0} -- Job Manager", GetCurrentVersion());
+                Text = string.Format("gTrackExtractGUI v{0} -- Job Manager", GetCurrentVersion());
 
                 _FromConstructor = true;
 
@@ -727,7 +727,7 @@ namespace gMKVToolNix
         {
             try
             {
-                this.Text = string.Format("gMKVExtractGUI v{0} -- {1}", GetCurrentVersion(), LocalizationManager.GetString("UI.JobManager.Title"));
+                this.Text = string.Format("gTrackExtractGUI v{0} -- {1}", GetCurrentVersion(), LocalizationManager.GetString("UI.JobManager.Title"));
                 grpProgress.Text = LocalizationManager.GetString("UI.JobManager.Progress.Group");
                 lblCurrentTrack.Text = LocalizationManager.GetString("UI.JobManager.Progress.CurrentTrack");
                 lblTotalProgress.Text = LocalizationManager.GetString("UI.JobManager.Progress.TotalProgress");
