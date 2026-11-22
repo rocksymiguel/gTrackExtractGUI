@@ -13,3 +13,6 @@ packages/
 # Runtime files
 *.ini
 *.log
+
+# Release packages
+dist/

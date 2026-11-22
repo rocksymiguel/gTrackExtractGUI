@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Use the .NET Framework 4.8 reference assemblies from NuGet (restored into packages\),
+    so the projects build even when the 4.8 targeting pack isn't installed
+    (e.g. Visual Studio Build Tools with only 4.8.1).
+    Restore first: msbuild gMKVExtractGUI.sln -t:restore -p:RestorePackagesConfig=true
+  -->
+  <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)packages\Microsoft.NETFramework.ReferenceAssemblies.net48.1.0.3\build\.NETFramework\v4.8')">
+    <TargetFrameworkRootPath>$(MSBuildThisFileDirectory)packages\Microsoft.NETFramework.ReferenceAssemblies.net48.1.0.3\build</TargetFrameworkRootPath>
+  </PropertyGroup>
+</Project>
